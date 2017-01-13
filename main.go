@@ -1,20 +1,19 @@
 package main
 
 /*
-#cgo LDFLAGS: -lTDBAPI
+#cgo LDFLAGS: -lTDBAPI -lstdc++
 #include "include/TDBAPI.h"
 #include "include/TDBAPIStruct.h"
- */
+#include <stdlib.h>
+#include <string.h>
+*/
 import "C"
+
 import (
 	"fmt"
-	//"time"
 	"unsafe"
-	//"strconv"
-
 )
-
-
+/*
 func String2char(str string, des uintptr, sizeOf uintptr){
 	bytes := []byte(str)
 	for i:=0; i<len(bytes); i++{
@@ -33,220 +32,65 @@ func Char2byte(des uintptr, sizeOf uintptr, leng int)[128]byte{
 	}
 	return bytes
 }
+*/
 
-func copy(str string, des uintptr, sizeOf uintptr, len int) {
-	bytes := []byte(str)
-	for i:=0; i<len; i++ {
-		unit := (*C.char)(unsafe.Pointer(des))
-		*unit = C.char(bytes[i])
-		des += sizeOf
-	}
-}
+func main(){
+	var hTdb C.THANDLE = nil
 
+	var settings C.OPEN_SETTINGS
 
-/*func GetTickCount() int64 {
-	return time.Now().Unix()
-}
+	//================================================
+	String2char("114.80.154.34",uintptr(unsafe.Pointer(&settings.szIP)),unsafe.Sizeof(settings.szIP[0]))
+	String2char("6261",uintptr(unsafe.Pointer(&settings.szPort)),unsafe.Sizeof(settings.szPort[0]))
+	String2char("TD3446699001",uintptr(unsafe.Pointer(&settings.szUser)),unsafe.Sizeof(settings.szUser[0]))
+	String2char("43449360",uintptr(unsafe.Pointer(&settings.szPassword)),unsafe.Sizeof(settings.szPassword[0]))
+	//================================================
+	settings.nRetryCount = 15
+	settings.nRetryGap = 1
+	settings.nTimeOutVal = 1
 
-func array2str(arr *[]int, len uint) string {
-	var str string
-	for i:=0; i<len; i++ {
-		if i==len-1 {
-			str += strconv.Itoa(arr[i]) + " "
-		}else {
-			str += strconv.Itoa(arr[i]) + ","
-		}
-	}
-	return str
-}*/
+	//proxy
+	/*	var proxy_setting C.TDB_PROXY_SETTING
 
-/*
-//请求代码表
-func GetCodeTable(hTdb C.THANDLE, szMarket string)  {
-	var (
-		pCodetable *[]C.TDBDefine_Code = nil
-		pCount int
-		outPutTable bool = true)
-	ret := C.TDB_GetCodeTable(hTdb, szMarket, &pCodetable, &pCount)
+		proxy_setting.nProxyType = C.TDB_PROXY_HTTP11
+		//================================================
+		string2char("10.100.3.42",uintptr(unsafe.Pointer(&proxy_setting.szProxyHostIp)),unsafe.Sizeof(proxy_setting.szProxyHostIp[0]))
+		string2char("12345",uintptr(unsafe.Pointer(&proxy_setting.szProxyPort)),unsafe.Sizeof(proxy_setting.szProxyPort[0]))
+		string2char("1",uintptr(unsafe.Pointer(&proxy_setting.szProxyUser)),unsafe.Sizeof(proxy_setting.szProxyUser[0]))
+		string2char("1",uintptr(unsafe.Pointer(&proxy_setting.szProxyPwd)),unsafe.Sizeof(proxy_setting.szProxyPwd[0]))
+		//================================================
+		*/
 
-	if ret == C.TDB_NO_DATA {
-		fmt.Println("无代码表！")
+	var LoginRes C.TDBDefine_ResLogin
+	//TDB_OpenProxy
+	//hTdb = C.TDB_OpenProxy(&settings, &proxy_setting, &LoginRes)
+
+	hTdb = C.TDB_Open(&settings, &LoginRes)
+	if hTdb == nil {
+		fmt.Println("连接失败！")
 		return
 	}
 
-	fmt.Println("---------------------------Code Table--------------------")
-	fmt.Printf("收到代码表项数：%d，\n\n",pCount)
-	//输出
-	tmpPtr := uintptr(unsafe.Pointer(pCodetable))
-	sizeOf := unsafe.Sizeof(*pCodetable)
-	if outPutTable {
-		for i:=0; i<pCount; i++ {
-			pCt := (*C.struct_TDBDefine_Code)(unsafe.Pointer(tmpPtr))
-			fmt.Printf("交易所代码 chWindCode:%s \n", pCt.chCode)
-			fmt.Printf("市场代码 chWindCode:%s \n", pCt.chMarket)
-			fmt.Printf("证券中文名称 chWindCode:%s \n", pCt.chCNName)
-			fmt.Printf("证券英文名称 chWindCode:%s \n", pCt.chENName)
-			fmt.Printf("证券类型 chWindCode:%d \n", pCt.nType)
-			fmt.Println("----------------------------------------")
+	//TDB_GetCOdeInfo
+	var pCode *C.TDBDefine_Code
+	pCode = C.TDB_GetCodeInfo(hTdb, C.CString("000001.SZ"), C.CString("SZ-2-0"))
+
+	fmt.Printf("交易所代码 chWindCode:%s \n", Char2byte(uintptr(unsafe.Pointer(&pCode.chCode)),unsafe.Sizeof(pCode.chCode[1]),len(pCode.chCode)))
+
+	var pCount C.int = 0
+	C.TDB_GetCodeTable(hTdb,C.CString("SZ"),&pCode,&pCount);
+	tmpPtr := uintptr(unsafe.Pointer(pCode))
+	sizeOf := unsafe.Sizeof(*pCode)
+	if pCount!=0 && pCode!=nil{
+		for i := 0; i < 2; i++{
+			pC := (*C.TDBDefine_Code)(unsafe.Pointer(tmpPtr))
+			fmt.Println("-------------code table ----------------------------");
+			fmt.Printf("交易所代码 chWindCode:%s \n", Char2byte(uintptr(unsafe.Pointer(&pC.chCode)),unsafe.Sizeof(pC.chCode),len(pC.chCode)))
+			fmt.Printf("市场代码 chWindCode:%s \n", Char2byte(uintptr(unsafe.Pointer(&pC.chMarket)),unsafe.Sizeof(pC.chMarket),len(pC.chMarket)))
+			fmt.Printf("证券中文名称 chWindCode:%s \n", Char2byte(uintptr(unsafe.Pointer(&pC.chCNName)),unsafe.Sizeof(pC.chCNName),len(pC.chCNName)))
+			fmt.Printf("证券英文名称 chWindCode:%s \n", Char2byte(uintptr(unsafe.Pointer(&pC.chENName)),unsafe.Sizeof(pC.chENName),len(pC.chENName)))
+			fmt.Printf("证券类型 chWindCode:%d \n", pC.nType)
 			tmpPtr += sizeOf
 		}
 	}
-	C.TDB_Free(pCodetable)
-}
-
-func GetKData(hTdb C.THANDLE, szCode string, szMarket string, nBeginDate int, nEndDate int, nCycle int, nUserDef int, nCQFlag int, nAutoComplete int) {
-	var req *C.TDBDefine_ReqKLine = new(C.TDBDefine_ReqKLine)
-	copy(szCode, uintptr(unsafe.Pointer(&req.chCode)), unsafe.Sizeof(req.chCode[0]), 32)
-	copy(szMarket, uintptr(unsafe.Pointer(&req.chMarketKey)), unsafe.Sizeof(req.chMarketKey[0]), 24)
-	req.nCQFlag = (C.REFILLFLAG)nCQFlag  //除权标志，由用户定义
-	req.nBeginDate = nBeginDate  //开始日期
-	req.nEndDate = nEndDate;//结束日期
-	req.nBeginTime = 0;//开始时间
-	req.nEndTime = 0;//结束时间
-
-	req.nCycType = (C.CYCTYPE)nCycle;
-	req.nCycDef = 0;
-	req.nAutoComplete = nAutoComplete;
-
-	var kLine *C.TDBDefine_KLine = nil
-	var pCount int
-
-	C.TDB_GetKLine(hTdb,req,&kLine,&pCount)
-	req=nil
-	fmt.Println("---------------------------K Data--------------------")
-	fmt.Printf("数据条数：%d,打印 1/100 条\n\n",pCount)
-	tmpPtr := uintptr(unsafe.Pointer(kLine))
-	sizeOf := unsafe.Sizeof(*kLine)
-	for i:=0; i<pCount;  {
-		kL := (*C.TDBDefine_KLine)(unsafe.Pointer(tmpPtr))
-		fmt.Printf("WindCode:%s\n Code:%s\n Date:%d\n Time:%d\n Open:%d\n High:%d\n Low:%d\n Close:%d\n Volume:%lld\n Turover:%lld\n MatchItem:%d\n Interest:%d\n",
-			kL.chWindCode,kL.chCode,kL.nDate,kL.nTime,kL.nOpen,kL.nHigh,kL.nLow,kL.nClose, kL.iVolume,kL.iTurover,kL.nMatchItems,kL.nInterest)
-		tmpPtr += sizeOf*100
-		i += 100
-	}
-}
-
-func GetOrderQueue(hTdb C.THANDLE, szCode *C.char, szMarketKey *C.char, nDate int){
-	//请求
-	var req C.TDBDefine_ReqOrderQueue = {0}
-	strncpy(req.chCode, szCode, sizeof(req.chCode)) //代码写成你想获取的股票代码
-	strncpy(req.chMarketKey, szMarketKey, sizeof(req.chMarketKey))
-	req.nDate = nDate
-	req.nBeginTime = 0
-	req.nEndTime = 0
-
-	var pOrderQueue *C.TDBDefine_OrderQueue = nil
-	var pCount int
-	C.TDB_GetOrderQueue(hTdb,&req, &pOrderQueue, &pCount)
-
-	fmt.Println("-------------------OrderQueue Data-------------")
-	fmt.Printf("收到 %d 条委托队列消息，打印 1/1000 条\n", pCount);
-
-	for i:=0; i<pCount ;{
-		const TDBDefine_OrderQueue& que = pOrderQueue[i];
-		printf("订单时间(Date): %d \n", que.nDate);
-		printf("订单时间(HHMMSS): %d \n", que.nTime);
-		printf("买卖方向('B':Bid 'A':Ask): %c \n", que.nSide);
-		printf("成交价格: %d \n", que.nPrice);
-		printf("订单数量: %d \n", que.nOrderItems);
-		printf("明细个数: %d \n", que.nABItems);
-		printf("订单明细: %s \n", array2str(que.nABVolume, que.nABItems).c_str());
-		printf("-------------------------------\n");
-		i += 1000;
-	}
-	//释放
-	C.TDB_Free(pOrderQueue);
-}
-*/
-func UseEZFFormula(hTdb C.THANDLE){
-	//公式的编写，请参考<<TRANSEND-TS-M0001 易编公式函数表V1(2).0-20110822.pdf>>;
-	strName := "KDJ"
-	strContent := "INPUT:N(9), M1(3,1,100,2), M2(3);RSV:=(CLOSE-LLV(LOW,N))/(HHV(HIGH,N)-LLV(LOW,N))*100;K:MA(RSV,M1,1);D:SMA(K,M2,1);J:3*K-2*D;"
-
-	//添加公式到服务器并编译，若不过，会有错误返回
-	addRes := new(C.TDBDefine_AddFormulaRes)
-	nErr := C.TDB_AddFormula(hTdb, C.CString(strName), C.CString(strContent) ,addRes)
-	fmt.Printf("Add Formula Result:%s",Char2byte(uintptr(unsafe.Pointer(&addRes.chInfo)),unsafe.Sizeof(addRes.chInfo[1]),len(addRes.chInfo)))
-
-	//查询服务器上的公式，能看到我们刚才上传的"KDJ"
-	var pEZFItem *C.TDBDefine_FormulaItem
-	var nItems C.int = 0
-	//名字为空表示查询服务器上所有的公式
-	nErr = C.TDB_GetFormula(hTdb, nil, &pEZFItem, &nItems)
-	tmpPtr_pEZFItem := uintptr(unsafe.Pointer(pEZFItem))
-	sizeOf_pEZFItem := unsafe.Sizeof(*pEZFItem)
-
-	var i C.int = 0
-	var j C.int = 0
-	for i=0; i<nItems; i++{
-		tmpEZFItem := (*C.TDBDefine_Code)(unsafe.Pointer(tmpPtr_pEZFItem))
-		strNameInner := Char2byte(uintptr(unsafe.Pointer(&tmpEZFItem.chFormulaName)),unsafe.Sizeof(tmpEZFItem.chFormulaName),len(tmpEZFItem.chFormulaName))
-		strParam := Char2byte(uintptr(unsafe.Pointer(&tmpEZFItem.chParam)),unsafe.Sizeof(tmpEZFItem.chParam),len(tmpEZFItem.chParam))
-		fmt.Printf("公式名称：%s, 参数:%s \n", strNameInner, strParam)
-		tmpPtr_pEZFItem += sizeOf_pEZFItem
-	}
-
-	type EZFCycDefine struct {
-		chName string
-		nCyc   int
-		nCyc1  int
-	}
-	var EZFCyc[5] EZFCycDefine
-	EZFCyc[0] = EZFCycDefine{"日线", 2, 0}
-	EZFCyc[1] = EZFCycDefine{"30分", 0, 30}
-	EZFCyc[2] = EZFCycDefine{"5分钟", 0, 5}
-	EZFCyc[3] = EZFCycDefine{"1分钟", 0, 1}
-	EZFCyc[4] = EZFCycDefine{"15秒", 11, 15}
-
-	//获取公式的计算结果
-	var reqCalc C.TDBDefine_ReqCalcFormula
-	tmpPtr_reqCalc := uintptr(unsafe.Pointer(reqCalc.chFormulaName))
-	sizeOf_reqCalc := unsafe.Sizeof(*reqCalc.chFormulaName)
-	copy("KDJ", tmpPtr_reqCalc, sizeOf_reqCalc, len(reqCalc.chFormulaName))
-	//strncpy(reqCalc.chFormulaName, "KDJ", sizeof(reqCalc.chFormulaName));
-	tmpPtr_chParam := uintptr(unsafe.Pointer(reqCalc.chParam))
-	sizeOf_chParam := unsafe.Sizeof(*reqCalc.chParam)
-	copy("N=9,M1=3,M2=3", tmpPtr_chParam, sizeOf_chParam, len(reqCalc.chParam))
-	//strncpy(reqCalc.chParam, "N=9,M1=3,M2=3", sizeof(reqCalc.chParam))
-	tmpPtr_chCode := uintptr(unsafe.Pointer(reqCalc.chCode))
-	sizeOf_chCode := unsafe.Sizeof(*reqCalc.chCode)
-	copy("000001.SZ", tmpPtr_chCode, sizeOf_chCode, len(reqCalc.chCode))
-	//strncpy(reqCalc.chCode, "000001.SZ", sizeof(reqCalc.chCode))
-	tmpPtr_chMarketKey := uintptr(unsafe.Pointer(reqCalc.chMarketKey))
-	sizeOf_chMarketKey := unsafe.Sizeof(*reqCalc.chMarketKey)
-	copy("SZ-2-0", tmpPtr_chMarketKey, sizeOf_chMarketKey, len(reqCalc.chCode))
-	//strncpy(reqCalc.chMarketKey, "SZ-2-0", sizeof(reqCalc.chMarketKey))
-
-	reqCalc.nCycType = EZFCyc[0].nCyc		//0表示日线
-	reqCalc.nCycDef = EZFCyc[0].nCyc1
-	reqCalc.nCQFlag = 0				//除权标志
-	reqCalc.nCalcMaxItems = 4000 			//计算的最大数据量
-	reqCalc.nResultMaxItems = 100			//传送的结果的最大数据量
-
-	pResult := new(C.TDBDefine_CalcFormulaRes)
-	nErr = C.TDB_CalcFormula(hTdb, &reqCalc, pResult)
-	//判断错误代码
-
-	fmt.Printf("计算结果有: %d 条:\n", Char2byte(uintptr(unsafe.Pointer(&pResult.nRecordCount)),unsafe.Sizeof(pResult.nRecordCount[1]),len(pResult.nRecordCount)))
-	//var szLineBuf[1024]byte
-	//输出字段名
-	for j=0; j<pResult.nFieldCount;j++{
-		fmt.Print(pResult.chFieldName[j] + "  ")
-	}
-	fmt.Println();
-	fmt.Println();
-	//输出数据
-	for i=0; pResult.nRecordCount; i+=100{
-		for j=0; j<pResult.nFieldCount;j++{
-			fmt.Print(pResult.dataFileds)[j][i]+"  "}
-		fmt.Println()
-	}
-
-	//删除之前上传的公式指标
-	var pDel C.TDBDefine_DelFormulaRes
-	nErr = C.TDB_DeleteFormula(hTdb, "KDJ", &pDel)
-	fmt.Printf("删除指标信息:%s", Char2byte(uintptr(unsafe.Pointer(&pDel.chInfo)),unsafe.Sizeof(pDel.chInfo[1]),len(pDel.chInfo)))
-	//释放内存
-	//C.delete(pEZFItem)
-	C.TDB_ReleaseCalcFormula(pResult)
 }
