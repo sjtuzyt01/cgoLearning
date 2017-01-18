@@ -1,0 +1,12 @@
+Log file created at: 2017/01/18 05:59:37
+Running on machine: ubuntu
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0118 05:59:37.571218 35625 HHNetFrameProcessor_TDBAPI.cpp:188] Connect Success£¬login...
+I0118 05:59:37.571702 35625 HHNetFrameProcessor_TDBAPI.cpp:260] login...User:TD3446699001;Pwd:43449360
+I0118 05:59:37.827430 35628 HHNetFrameProcessor_TDBAPI.cpp:360] login success£¬requesting codetable!
+I0118 05:59:37.827468 35628 HHNetFrameProcessor_TDBAPI.cpp:369] requesting codetable...market:SH-2-0
+I0118 05:59:37.827524 35628 HHNetFrameProcessor_TDBAPI.cpp:369] requesting codetable...market:SZ-2-0
+I0118 05:59:40.611775 35628 HHNetFrameProcessor_TDBAPI.cpp:384] codetable arrived! Market£ºSH-2-0
+I0118 05:59:43.424892 35628 HHNetFrameProcessor_TDBAPI.cpp:384] codetable arrived! Market£ºSZ-2-0
+I0118 05:59:43.438680 35625 HHNetFrameProcessor_TDBAPI.cpp:539] requesting code information, code: 000001.SZmarket:SZ-2-0
+I0118 05:59:43.438935 35625 HHNetFrameProcessor_TDBAPI.cpp:1279] requesting Transaction: Code:000001.sz
